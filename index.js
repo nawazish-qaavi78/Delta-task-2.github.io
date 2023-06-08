@@ -248,6 +248,7 @@ function hit_enemies() {
 
 // checking if any hit occured
 function check_hit() {
+    // add somehting to make the collision look more game like
     hit_enemies();
     hit_home_player();
     if (HEALTH === 0) {
