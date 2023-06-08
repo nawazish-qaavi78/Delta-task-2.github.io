@@ -1,6 +1,3 @@
-// make collisions more pleasing to look
-// make enemeis fall according to level
-
 const canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -52,17 +49,18 @@ function write_score() {
         * parseFloat(canvas.width) / 20, 25);
 }
 
+// adding a pause button
 const pause_button = document.getElementById("pause");
-pause_button.style.marginLeft = (parseFloat(canvas.width) / 2).toString() +"px";
+pause_button.style.marginLeft = (parseFloat(canvas.width) / 2).toString() + "px";
 pause_button.style.marginTop = "25px";
 var word = "pause";
-document.addEventListener("keypress", function (e){
-    if(e.key === "p"){
+document.addEventListener("keypress", function (e) {
+    if (e.key === "p") {
         pause = !pause;
     }
 });
-function draw_pause_button(){
-    if(!pause){
+function draw_pause_button() {
+    if (!pause) {
         word = "pause";
     } else {
         word = "play";
@@ -72,15 +70,11 @@ function draw_pause_button(){
     ctx.strokeText(word, parseFloat(pause_button.style.marginLeft), parseFloat(pause_button.style.marginTop));
 }
 
-function top_screen(){
+function top_screen() {
     draw_pause_button();
     write_score();
     health_bar();
 }
-
-
-
-
 
 // initializing the position of home
 const HOME = document.getElementById("home");
@@ -155,7 +149,7 @@ class Bullet {
 
 // shooting the bullets
 document.addEventListener("click", function (e) {
-    if(!pause && !game_over){
+    if (!pause && !game_over) {
         var mouse_x = e.x,
             mouse_y = e.y,
             dx = mouse_x - parseFloat(player.style.marginLeft),
@@ -166,14 +160,14 @@ document.addEventListener("click", function (e) {
     }
 });
 
-// a function to move and draw all the bullets
+// a function to move
 function manage_bullets() {
     for (let i = 0; i < bulletsArray.length; i++) {
         bulletsArray[i].move();
     }
 }
-function draw_bullets(){
-    for(let i =0; i<bulletsArray.length; i++){
+function draw_bullets() {
+    for (let i = 0; i < bulletsArray.length; i++) {
         bulletsArray[i].draw();
     }
 }
@@ -203,17 +197,18 @@ function create_enemies() {
 
 // a fucntion to move all the enemies
 function manage_enemies() {
-    if (Math.random() * 50 < 2) create_enemies();
+    if (Math.random() * 50 < 2) create_enemies(); // determing the probability of enemy being created... change this such that probabilty increase with score
     for (let i = 0; i < enemyArray.length; i++) {
         enemyArray[i].move();
     }
 }
-function draw_enemies(){
-    for(let i=0; i<enemyArray.length; i++){
+function draw_enemies() {
+    for (let i = 0; i < enemyArray.length; i++) {
         enemyArray[i].draw();
     }
 }
 
+// checking if the enemy hit home or the player
 function hit_home_player() {
     for (let k = 0; k < enemyArray.length; k++) {
         var enemy_x = enemyArray[k].x,
@@ -231,6 +226,7 @@ function hit_home_player() {
     }
 }
 
+// checking if bullet hit the enemy or not
 function hit_enemies() {
     for (let i = 0; i < bulletsArray.length; i++) {
         var bullet_x = bulletsArray[i].x,
@@ -250,7 +246,7 @@ function hit_enemies() {
     }
 }
 
-// checking if the bullet collided with any enemies or enemies collided with home or player
+// checking if any hit occured
 function check_hit() {
     hit_enemies();
     hit_home_player();
@@ -259,7 +255,7 @@ function check_hit() {
     }
 }
 
-function draw_game(){
+function draw_game() {
     draw_home();
     draw_bullets();
     draw_player();
@@ -267,11 +263,11 @@ function draw_game(){
     top_screen();
 }
 
-function game_over_screen(){
+function game_over_screen() {
     ctx.fillStyle = "black";
     ctx.font = "30px Arial";
     ctx.textAlign = "left";
-    ctx.fillText("Game Over", parseFloat(window.innerWidth)/2 -15,parseFloat(window.innerHeight)/2);
+    ctx.fillText("Game Over", parseFloat(window.innerWidth) / 2 - 15, parseFloat(window.innerHeight) / 2);
 }
 
 
