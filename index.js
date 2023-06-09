@@ -2,16 +2,18 @@ const canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-const shoot_sound = new Audio("sounds/laser-gun.mp3"),
-    crash = new Audio("sounds/mixkit-cartoon-punch-2149.wav");
+var time_delay = 3000;
+
+const SHOOT_SOUND = new Audio("sounds/laser-gun.mp3"),
+    CRASH_SOUND = new Audio("sounds/mixkit-cartoon-punch-2149.wav");
 
 const lettering_size = 15,
-      big_lettering = 30;
+    big_lettering = 30;
 
+var powerUpArray = [];
+const FRUIT_SIZE = 20;
 
-var high_score = localStorage.getItem("highscore") ? localStorage.getItem("highscore") : 0,
-    time_delay = 3000;
-
+var high_score = localStorage.getItem("highscore") ? localStorage.getItem("highscore") : 0;
 
 var score = 0,
     level = 1,
@@ -23,19 +25,18 @@ const MAX_HEALTH = 100,
     HEALTH_BAR_LENGTH = 250,
     HEALTH_BAR_WIDTH = 25,
     health_damage = 5;
-
 var current_health_length = HEALTH_BAR_LENGTH,
     HEALTH = MAX_HEALTH,
     health_bar_color = "green";
 
-const bulletsArray = [],
-    playerBullets = [],
-    BULLET_SPEED = 10,
+var bulletsArray = [],
+    playerBullets = [];
+const BULLET_SPEED = 10,
     BULLET_SIZE = 10;
 
-const enemyArray = [],
-    specialEnemyArray = [],
-    ENEMY_SPEED = 1,
+var enemyArray = [],
+    specialEnemyArray = [];
+const ENEMY_SPEED = 1,
     ENEMY_SIZE = 25;
 
 const COLLISION_DIST = 20,
@@ -195,7 +196,7 @@ document.addEventListener("click", function (e) {
             new_bullet = new Bullet(parseFloat(player.style.marginLeft), parseFloat(player.style.marginTop), slope, direction);
         bulletsArray.push(new_bullet);
         playerBullets.push(new_bullet);
-        shoot_sound.play();
+        SHOOT_SOUND.play();
     }
 });
 
@@ -265,40 +266,43 @@ function draw_enemies() {
 }
 
 // this function will make the enemies shoot after particular interval of time
-enemy_shoot = setInterval(function () {
+var enemy_shoot = setInterval(function () {
     for (let i = 0; i < specialEnemyArray.length; i++) {
         specialEnemyArray[i].shoot();
     }
 }, time_delay);
 
+
+
+
 function hit_home_player() {
     // this loop checks if any bullet collided with the home (even the bullet shot by the player)
     for (let i = 0; i < bulletsArray.length; i++) {
         var bullet_x = bulletsArray[i].x,
-            bullet_y = bulletsArray[i].y,
-            collision_with_home = bullet_y >= HOME_Y - BULLET_SIZE && bullet_y <= HOME_Y + HOME_HEIGHT && bullet_x >= HOME_X - BULLET_SIZE && bullet_x <= HOME_X + HOME_WIDTH;
+        bullet_y = bulletsArray[i].y,
+        collision_with_home = bullet_y >= HOME_Y - BULLET_SIZE && bullet_y <= HOME_Y + HOME_HEIGHT && bullet_x >= HOME_X - BULLET_SIZE && bullet_x <= HOME_X + HOME_WIDTH;
         if (collision_with_home) {
             HEALTH -= health_damage;
             current_health_length -= health_damage * HEALTH_BAR_LENGTH / MAX_HEALTH;
-            crash.play();
+            CRASH_SOUND.play();
             if (playerBullets.includes(bulletsArray[i])) playerBullets.splice(playerBullets.indexOf(bulletsArray[i]), 1);
             bulletsArray.splice(i, 1);
             i--;
         }
     }
-
+    
     // this loop checks if the enemies collided with the home
     for (let k = 0; k < enemyArray.length; k++) {
         var enemy_x = enemyArray[k].x,
-            enemy_y = enemyArray[k].y,
-            collision_with_home = enemy_y >= HOME_Y - BULLET_SIZE && enemy_x >= HOME_X - BULLET_SIZE && enemy_x <= HOME_X + HOME_WIDTH,
-            dx_player = enemy_x - parseFloat(player.style.marginLeft),
-            dy_player = enemy_y - parseFloat(player.style.marginTop),
-            dist_player = Math.sqrt(dx_player ** 2 + dy_player ** 2);
+        enemy_y = enemyArray[k].y,
+        collision_with_home = enemy_y >= HOME_Y - BULLET_SIZE && enemy_x >= HOME_X - BULLET_SIZE && enemy_x <= HOME_X + HOME_WIDTH,
+        dx_player = enemy_x - parseFloat(player.style.marginLeft),
+        dy_player = enemy_y - parseFloat(player.style.marginTop),
+        dist_player = Math.sqrt(dx_player ** 2 + dy_player ** 2);
         if (collision_with_home || dist_player < COLLISION_DIST) {
             HEALTH -= health_damage;
             current_health_length -= health_damage * HEALTH_BAR_LENGTH / MAX_HEALTH;
-            crash.play();
+            CRASH_SOUND.play();
             if (specialEnemyArray.includes(enemyArray[k])) specialEnemyArray.splice(specialEnemyArray.indexOf(enemyArray[k]), 1);
             enemyArray.splice(k, 1);
             k--;
@@ -306,6 +310,44 @@ function hit_home_player() {
     }
 }
 
+class PowerUp {
+    constructor(){
+        // this.x = Math.random() *canvas.width;
+        // this.y = Math.random() * canvas.height;
+        this.x = 80;
+        this.y = 80;
+    }
+    draw(){
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, FRUIT_SIZE, 0, 2*Math.PI);
+        ctx.fill();
+    }
+}
+
+function draw_powerUps(){
+    for(let i =0; i<powerUpArray.length; i++){
+        powerUpArray[i].draw();
+    }
+}
+function eaten_powerup() {
+    for(let i =0; i<powerUpArray.length; i++){
+        var dx_player = powerUpArray[i].x - parseFloat(player.style.marginLeft),
+        dy_player = powerUpArray[i].y - parseFloat(player.style.marginTop);
+        if(Math.sqrt(dx_player**2 + dy_player**2) < COLLISION_DIST) {
+            time_delay -=5;
+            powerUpArray.splice(i,1);
+            i--;
+        }
+    }
+}
+
+// to randomly generate powerups 
+var power_up_generator = setInterval(function(){
+    if(!game_over && !pause && powerUpArray.length<2 && Math.random() * (300 - level) < 1 ){ // keeping max powers up on screen at once =2;
+        powerUpArray.push(new PowerUp());
+    }
+}, time_delay);
 function draw_level_up() {
     ctx.fillStyle = "black";
     ctx.font = big_lettering + "px Arial";
@@ -363,9 +405,10 @@ function enemies_dead() {
 }
 
 // checking if the bullet collided with any enemies or enemies collided with home or player
-function check_hit() {
+function collisions() {
     enemies_dead();
     hit_home_player();
+    eaten_powerup();
     if (HEALTH === 0) {
         game_over = true;
     }
@@ -377,6 +420,12 @@ function draw_game() {
     draw_player();
     draw_enemies();
     top_screen();
+    draw_powerUps();
+}
+
+function move() {
+    manage_enemies();
+    manage_bullets();
 }
 
 function game_over_screen() {
@@ -394,9 +443,8 @@ function game_over_screen() {
 function game() {
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     if (!pause) {
-        manage_enemies();
-        manage_bullets();
-        check_hit();
+        move();
+        collisions();
     }
     if (!game_over && !leveling_up) requestAnimationFrame(game);
     else if (game_over) game_over_screen();
