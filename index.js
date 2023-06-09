@@ -2,23 +2,39 @@ const canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
+const shoot_sound = new Audio("sounds/laser-gun.mp3"),
+    crash = new Audio("sounds/mixkit-cartoon-punch-2149.wav");
+
+const lettering_size = 15,
+      big_lettering = 30;
+
+
+var high_score = localStorage.getItem("highscore") ? localStorage.getItem("highscore") : 0,
+    time_delay = 3000;
+
+
 var score = 0,
+    level = 1,
     game_over = false,
-    pause = false;
+    pause = false,
+    leveling_up = false;
 
 const MAX_HEALTH = 100,
     HEALTH_BAR_LENGTH = 250,
     HEALTH_BAR_WIDTH = 25,
     health_damage = 5;
+
 var current_health_length = HEALTH_BAR_LENGTH,
     HEALTH = MAX_HEALTH,
     health_bar_color = "green";
 
 const bulletsArray = [],
+    playerBullets = [],
     BULLET_SPEED = 10,
     BULLET_SIZE = 10;
 
 const enemyArray = [],
+    specialEnemyArray = [],
     ENEMY_SPEED = 1,
     ENEMY_SIZE = 25;
 
@@ -37,19 +53,18 @@ function health_bar() {
     ctx.fillRect(8, 8, current_health_length, HEALTH_BAR_WIDTH);
 
     ctx.strokeStyle = "white";
-    ctx.font = "15px Arial";
+    ctx.font = lettering_size + "px Arial";
     ctx.textAlign = "left";
     ctx.strokeText("HEALTH", 10, 25);
 }
 
 function write_score() {
     ctx.strokeStyle = "white";
-    ctx.font = "15px Arial";
+    ctx.font = lettering_size + "px Arial";
     ctx.strokeText("Score: " + score.toString(), 17.5
         * parseFloat(canvas.width) / 20, 25);
 }
 
-// adding a pause button
 const pause_button = document.getElementById("pause");
 pause_button.style.marginLeft = (parseFloat(canvas.width) / 2).toString() + "px";
 pause_button.style.marginTop = "25px";
@@ -59,6 +74,15 @@ document.addEventListener("keypress", function (e) {
         pause = !pause;
     }
 });
+
+document.getElementById("canvas").addEventListener("click", function (e) {
+    var x_ok = e.x >= parseFloat(pause_button.style.marginLeft) && e.x <= parseFloat(pause_button.style.marginLeft) + word.length * lettering_size;
+    var y_ok = e.y >= parseFloat(pause_button.style.marginTop) && e.y <= parseFloat(pause_button.style.marginTop) + lettering_size;
+    if (x_ok && y_ok) {
+        pause = !pause;
+    }
+});
+
 function draw_pause_button() {
     if (!pause) {
         word = "pause";
@@ -66,15 +90,20 @@ function draw_pause_button() {
         word = "play";
     }
     ctx.strokeStyle = "white";
-    ctx.font = "15px Arial";
+    ctx.font = lettering_size + "px Arial";
     ctx.strokeText(word, parseFloat(pause_button.style.marginLeft), parseFloat(pause_button.style.marginTop));
 }
+ctx.fillStyle = "yellow";
+ctx.beginPath();
+ctx.fillRect(parseFloat(pause_button.style.marginLeft), parseFloat(pause_button.style.marginTop), word.length, lettering_size);
+
 
 function top_screen() {
     draw_pause_button();
     write_score();
     health_bar();
 }
+
 
 // initializing the position of home
 const HOME = document.getElementById("home");
@@ -91,7 +120,7 @@ function draw_home() {
     ctx.fillRect(HOME_X, HOME_Y, HOME_WIDTH, HOME_HEIGHT);
 
     ctx.strokeStyle = "black";
-    ctx.font = "15px Arial";
+    ctx.font = lettering_size + "px Arial";
     ctx.textAlign = "center";
     ctx.strokeText("HOME", HOME_X + HOME_WIDTH / 2, HOME_Y + HOME_HEIGHT / 2);
 }
@@ -110,25 +139,32 @@ function draw_player() {
 }
 
 
-// to make the player move along x-axis
+// to make the player move
 document.addEventListener("keydown", function (e) {
-    var x_cor = parseFloat(player.style.marginLeft);
+    var x_cor = parseFloat(player.style.marginLeft),
+        y_cor = parseFloat(player.style.marginTop);
     if (e.key === 'a') {
         if (x_cor - PLAYER_MOVE_DIST > 0)
             player.style.marginLeft = (x_cor - PLAYER_MOVE_DIST).toString() + "px";
     } else if (e.key === 'd') {
         if (x_cor + PLAYER_MOVE_DIST < window.innerWidth)
             player.style.marginLeft = (x_cor + PLAYER_MOVE_DIST).toString() + "px";
+    } else if (e.key === "w") {
+        if (y_cor - PLAYER_MOVE_DIST > 0)
+            player.style.marginTop = (y_cor - PLAYER_MOVE_DIST).toString() + "px";
+    } else if (e.key === "s") {
+        if (y_cor + PLAYER_MOVE_DIST < window.innerHeight)
+            player.style.marginTop = (y_cor + PLAYER_MOVE_DIST).toString() + "px";
     }
 });
 
 class Bullet {
-    constructor(slope, speed) {
+    constructor(x, y, slope, direction) {
         this.size = BULLET_SIZE;
-        this.x = parseFloat(player.style.marginLeft);
-        this.y = parseFloat(player.style.marginTop);
+        this.x = x;
+        this.y = y;
         this.slope = slope;
-        this.speed = speed;
+        this.direction = direction;
     }
     draw() {
         ctx.fillStyle = "white";
@@ -138,11 +174,11 @@ class Bullet {
     }
     move() {
         if (this.slope === null) {
-            this.y += this.speed;
+            this.y += this.direction * PLAYER_MOVE_DIST
         } else {
             var t = Math.sqrt(1 + (this.slope ** 2)); // this t is to ensure that speed of bullet is same in all directions
-            this.x -= this.speed / t;
-            this.y -= this.slope * this.speed / t;
+            this.x += this.direction * PLAYER_MOVE_DIST / t;
+            this.y += this.direction * this.slope * PLAYER_MOVE_DIST / t;
         }
     }
 }
@@ -154,13 +190,16 @@ document.addEventListener("click", function (e) {
             mouse_y = e.y,
             dx = mouse_x - parseFloat(player.style.marginLeft),
             dy = mouse_y - parseFloat(player.style.marginTop),
-            slope = dx === 0 ? null : dy / dx,
-            speed = BULLET_SPEED * (slope > 0 ? 1 : -1);
-        bulletsArray.push(new Bullet(slope, speed));
+            slope = dx === 0 ? null : (dy / dx),
+            direction = dx > 0 ? 1 : -1,
+            new_bullet = new Bullet(parseFloat(player.style.marginLeft), parseFloat(player.style.marginTop), slope, direction);
+        bulletsArray.push(new_bullet);
+        playerBullets.push(new_bullet);
+        shoot_sound.play();
     }
 });
 
-// a function to move
+// a function to move and draw all the bullets
 function manage_bullets() {
     for (let i = 0; i < bulletsArray.length; i++) {
         bulletsArray[i].move();
@@ -172,32 +211,49 @@ function draw_bullets() {
     }
 }
 
-
 class Enemy {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
+    constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = 0;
+        this.color = "red";
     }
     move() {
         this.y += ENEMY_SPEED;
     }
     draw() {
-        ctx.fillStyle = "red";
+        ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.fillRect(this.x, this.y, ENEMY_SIZE, ENEMY_SIZE);
     }
 }
 
-
+class SpecialEnemy extends Enemy {
+    constructor() {
+        super();
+        this.color = "blue";
+    }
+    shoot() {
+        var dx = HOME_X - this.x,
+            dy = HOME_Y - this.y,
+            slope = dx === 0 ? null : (dy / dx),
+            direction = dx > 0 ? 1 : -1;
+        bulletsArray.push(new Bullet(this.x, this.y, slope, direction));
+    }
+}
 
 // to create enemies
 function create_enemies() {
-    enemyArray.push(new Enemy((Math.random()) * canvas.width, 0));
+    enemyArray.push(new Enemy());
+    if (Math.random() * (10 - level * 2) < 1) { // this if statement increases the probability of special enemies being created along with increase in level
+        var enemy = new SpecialEnemy();
+        enemyArray.push(enemy);
+        specialEnemyArray.push(enemy);
+    }
 }
 
 // a fucntion to move all the enemies
 function manage_enemies() {
-    if (Math.random() * 50 < 2) create_enemies(); // determing the probability of enemy being created... change this such that probabilty increase with score
+    if (Math.random() * (190 - level) < 2) create_enemies(); // this also ensure that probability of enemies spawing increases with level
     for (let i = 0; i < enemyArray.length; i++) {
         enemyArray[i].move();
     }
@@ -208,8 +264,30 @@ function draw_enemies() {
     }
 }
 
-// checking if the enemy hit home or the player
+// this function will make the enemies shoot after particular interval of time
+enemy_shoot = setInterval(function () {
+    for (let i = 0; i < specialEnemyArray.length; i++) {
+        specialEnemyArray[i].shoot();
+    }
+}, time_delay);
+
 function hit_home_player() {
+    // this loop checks if any bullet collided with the home (even the bullet shot by the player)
+    for (let i = 0; i < bulletsArray.length; i++) {
+        var bullet_x = bulletsArray[i].x,
+            bullet_y = bulletsArray[i].y,
+            collision_with_home = bullet_y >= HOME_Y - BULLET_SIZE && bullet_y <= HOME_Y + HOME_HEIGHT && bullet_x >= HOME_X - BULLET_SIZE && bullet_x <= HOME_X + HOME_WIDTH;
+        if (collision_with_home) {
+            HEALTH -= health_damage;
+            current_health_length -= health_damage * HEALTH_BAR_LENGTH / MAX_HEALTH;
+            crash.play();
+            if (playerBullets.includes(bulletsArray[i])) playerBullets.splice(playerBullets.indexOf(bulletsArray[i]), 1);
+            bulletsArray.splice(i, 1);
+            i--;
+        }
+    }
+
+    // this loop checks if the enemies collided with the home
     for (let k = 0; k < enemyArray.length; k++) {
         var enemy_x = enemyArray[k].x,
             enemy_y = enemyArray[k].y,
@@ -220,36 +298,73 @@ function hit_home_player() {
         if (collision_with_home || dist_player < COLLISION_DIST) {
             HEALTH -= health_damage;
             current_health_length -= health_damage * HEALTH_BAR_LENGTH / MAX_HEALTH;
+            crash.play();
+            if (specialEnemyArray.includes(enemyArray[k])) specialEnemyArray.splice(specialEnemyArray.indexOf(enemyArray[k]), 1);
             enemyArray.splice(k, 1);
             k--;
         }
     }
 }
 
-// checking if bullet hit the enemy or not
-function hit_enemies() {
-    for (let i = 0; i < bulletsArray.length; i++) {
-        var bullet_x = bulletsArray[i].x,
-            bullet_y = bulletsArray[i].y;
+function draw_level_up() {
+    ctx.fillStyle = "black";
+    ctx.font = big_lettering + "px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("Level Up", parseFloat(window.innerWidth) / 2 - 15, parseFloat(window.innerHeight) / 2);
+    setTimeout(function () {
+        leveling_up = false;
+        game();
+    }, 1000);
+}
+
+function enemies_dead() {
+    // this part will check if any bullet hit them
+    for (let i = 0; i < playerBullets.length; i++) { // this will ensure that the bullets hit by the enemies don't hurt the enemies... i.e all bullets hurt the home but only players bullets hurt the enemies
+        var bullet_x = playerBullets[i].x,
+            bullet_y = playerBullets[i].y;
         for (let j = 0; j < enemyArray.length; j++) {
             var dx = bullet_x - enemyArray[j].x,
                 dy = bullet_y - enemyArray[j].y,
                 distance = Math.sqrt(dx ** 2 + dy ** 2);
             if (distance < COLLISION_DIST) {
+                if (specialEnemyArray.includes(enemyArray[j])) specialEnemyArray.splice(specialEnemyArray.indexOf(enemyArray[i]), 1);
                 enemyArray.splice(j, 1);
                 score++;
-                bulletsArray.splice(i, 1);
+                var prev_lvl = level;
+                level = Math.floor(score / 10) + 1;
+                if (prev_lvl < level) {
+                    leveling_up = true;
+                    time_delay -= 5; // making the frequency with which the enemies shoot increase
+                    if(HEALTH + health_damage <= 100){ // giving the player more health on leveling up
+                        HEALTH+=health_damage;
+                        current_health_length += health_damage * HEALTH_BAR_LENGTH / MAX_HEALTH;
+                    } else {
+                        HEALTH = 100;
+                        current_health_length = HEALTH_BAR_LENGTH;
+                    }
+                };
+
+                bulletsArray.splice(bulletsArray.indexOf(playerBullets[i]), 1);
+                playerBullets.splice(i, 1);
                 i--;
                 break;
             }
         }
     }
+
+    // this part will remove the enemies if they cross the window length
+    for (let i = 0; i < enemyArray.length; i++) {
+        if (enemyArray[i].y > window.innerHeight) {
+            if (specialEnemyArray.includes(enemyArray[i])) zspecialEnemyArray.splice(specialEnemyArray.indexOf(enemyArray[i]), 1);
+            enemyArray.splice(i, 1);
+            i--;
+        }
+    }
 }
 
-// checking if any hit occured
+// checking if the bullet collided with any enemies or enemies collided with home or player
 function check_hit() {
-    // add somehting to make the collision look more game like
-    hit_enemies();
+    enemies_dead();
     hit_home_player();
     if (HEALTH === 0) {
         game_over = true;
@@ -266,9 +381,12 @@ function draw_game() {
 
 function game_over_screen() {
     ctx.fillStyle = "black";
-    ctx.font = "30px Arial";
+    ctx.font = big_lettering + "px Arial";
     ctx.textAlign = "left";
     ctx.fillText("Game Over", parseFloat(window.innerWidth) / 2 - 15, parseFloat(window.innerHeight) / 2);
+    if (score > high_score)
+        localStorage.setItem("highscore", score);
+    ctx.fillText("High Score: " + high_score, parseFloat(window.innerWidth) / 2 - 15, parseFloat(window.innerHeight) / 2 + big_lettering);
 }
 
 
@@ -280,8 +398,9 @@ function game() {
         manage_bullets();
         check_hit();
     }
-    if (!game_over) requestAnimationFrame(game);
-    else game_over_screen();
+    if (!game_over && !leveling_up) requestAnimationFrame(game);
+    else if (game_over) game_over_screen();
+    else draw_level_up();
     draw_game();
 }
 game();
