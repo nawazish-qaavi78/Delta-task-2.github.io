@@ -66,12 +66,21 @@ function write_score() {
         * parseFloat(canvas.width) / 20, 25);
 }
 
+
+// pause system
 const pause_button = document.getElementById("pause");
 pause_button.style.marginLeft = (parseFloat(canvas.width) / 2).toString() + "px";
 pause_button.style.marginTop = "25px";
 var word = "pause";
 document.addEventListener("keypress", function (e) {
     if (e.key === "p") {
+        if (pause === false) {
+            clearInterval(enemy_shooting);
+            clearInterval(power_up_generator);
+        } else {
+            enemy_shooting = setInterval(enemy_shooting, time_delay);
+            enemy_shooting = setInterval(power_up_generator, time_delay);
+        }
         pause = !pause;
     }
 });
@@ -127,6 +136,8 @@ function draw_home() {
 }
 
 
+// player properties
+
 // initializing the position of player
 const player = document.getElementById("player");
 player.style.marginLeft = (window.innerWidth / 2 + 10).toString() + "px";
@@ -138,7 +149,6 @@ function draw_player() {
     ctx.arc(parseFloat(player.style.marginLeft), parseFloat(player.style.marginTop), 20, 0, Math.PI * 2);
     ctx.fill();
 }
-
 
 // to make the player move
 document.addEventListener("keydown", function (e) {
@@ -158,6 +168,7 @@ document.addEventListener("keydown", function (e) {
             player.style.marginTop = (y_cor + PLAYER_MOVE_DIST).toString() + "px";
     }
 });
+
 
 class Bullet {
     constructor(x, y, slope, direction) {
@@ -204,6 +215,12 @@ document.addEventListener("click", function (e) {
 function manage_bullets() {
     for (let i = 0; i < bulletsArray.length; i++) {
         bulletsArray[i].move();
+        // to remove the bullets out of the screen
+        if (bulletsArray[i].x < 0 || bulletsArray[i].x > window.innerWidth || bulletsArray[i].y > window.innerHeight || bulletsArray[i].y < 0) {
+            if (playerBullets.includes(bulletsArray[i])) playerBullets.splice(playerBullets.indexOf(bulletsArray[i]), 1);
+            bulletsArray.splice(i, 1);
+            i--;
+        }
     }
 }
 function draw_bullets() {
@@ -211,6 +228,7 @@ function draw_bullets() {
         bulletsArray[i].draw();
     }
 }
+
 
 class Enemy {
     constructor() {
@@ -245,6 +263,7 @@ class SpecialEnemy extends Enemy {
 // to create enemies
 function create_enemies() {
     enemyArray.push(new Enemy());
+    // after level 5 special enemies must form
     if (Math.random() * (10 - level * 2) < 1) { // this if statement increases the probability of special enemies being created along with increase in level
         var enemy = new SpecialEnemy();
         enemyArray.push(enemy);
@@ -266,21 +285,20 @@ function draw_enemies() {
 }
 
 // this function will make the enemies shoot after particular interval of time
-var enemy_shoot = setInterval(function () {
+function enemies_shoot() {
     for (let i = 0; i < specialEnemyArray.length; i++) {
         specialEnemyArray[i].shoot();
     }
-}, time_delay);
-
-
+}
+var enemy_shooting = setInterval(enemies_shoot, time_delay);
 
 
 function hit_home_player() {
     // this loop checks if any bullet collided with the home (even the bullet shot by the player)
     for (let i = 0; i < bulletsArray.length; i++) {
         var bullet_x = bulletsArray[i].x,
-        bullet_y = bulletsArray[i].y,
-        collision_with_home = bullet_y >= HOME_Y - BULLET_SIZE && bullet_y <= HOME_Y + HOME_HEIGHT && bullet_x >= HOME_X - BULLET_SIZE && bullet_x <= HOME_X + HOME_WIDTH;
+            bullet_y = bulletsArray[i].y,
+            collision_with_home = bullet_y >= HOME_Y - BULLET_SIZE && bullet_y <= HOME_Y + HOME_HEIGHT && bullet_x >= HOME_X - BULLET_SIZE && bullet_x <= HOME_X + HOME_WIDTH;
         if (collision_with_home) {
             HEALTH -= health_damage;
             current_health_length -= health_damage * HEALTH_BAR_LENGTH / MAX_HEALTH;
@@ -290,15 +308,15 @@ function hit_home_player() {
             i--;
         }
     }
-    
+
     // this loop checks if the enemies collided with the home
     for (let k = 0; k < enemyArray.length; k++) {
         var enemy_x = enemyArray[k].x,
-        enemy_y = enemyArray[k].y,
-        collision_with_home = enemy_y >= HOME_Y - BULLET_SIZE && enemy_x >= HOME_X - BULLET_SIZE && enemy_x <= HOME_X + HOME_WIDTH,
-        dx_player = enemy_x - parseFloat(player.style.marginLeft),
-        dy_player = enemy_y - parseFloat(player.style.marginTop),
-        dist_player = Math.sqrt(dx_player ** 2 + dy_player ** 2);
+            enemy_y = enemyArray[k].y,
+            collision_with_home = enemy_y >= HOME_Y - BULLET_SIZE && enemy_x >= HOME_X - BULLET_SIZE && enemy_x <= HOME_X + HOME_WIDTH,
+            dx_player = enemy_x - parseFloat(player.style.marginLeft),
+            dy_player = enemy_y - parseFloat(player.style.marginTop),
+            dist_player = Math.sqrt(dx_player ** 2 + dy_player ** 2);
         if (collision_with_home || dist_player < COLLISION_DIST) {
             HEALTH -= health_damage;
             current_health_length -= health_damage * HEALTH_BAR_LENGTH / MAX_HEALTH;
@@ -311,43 +329,59 @@ function hit_home_player() {
 }
 
 class PowerUp {
-    constructor(){
+    constructor() {
         // this.x = Math.random() *canvas.width;
         // this.y = Math.random() * canvas.height;
         this.x = 80;
         this.y = 80;
     }
-    draw(){
+    draw() {
         ctx.fillStyle = "red";
         ctx.beginPath();
-        ctx.arc(this.x, this.y, FRUIT_SIZE, 0, 2*Math.PI);
+        ctx.arc(this.x, this.y, FRUIT_SIZE, 0, 2 * Math.PI);
         ctx.fill();
     }
 }
 
-function draw_powerUps(){
-    for(let i =0; i<powerUpArray.length; i++){
+function draw_powerUps() {
+    for (let i = 0; i < powerUpArray.length; i++) {
         powerUpArray[i].draw();
     }
 }
 function eaten_powerup() {
-    for(let i =0; i<powerUpArray.length; i++){
+    for (let i = 0; i < powerUpArray.length; i++) {
         var dx_player = powerUpArray[i].x - parseFloat(player.style.marginLeft),
-        dy_player = powerUpArray[i].y - parseFloat(player.style.marginTop);
-        if(Math.sqrt(dx_player**2 + dy_player**2) < COLLISION_DIST) {
-            time_delay -=5;
-            powerUpArray.splice(i,1);
+            dy_player = powerUpArray[i].y - parseFloat(player.style.marginTop);
+        if (Math.sqrt(dx_player ** 2 + dy_player ** 2) < COLLISION_DIST) {
+            time_delay -= 5;
+            powerUpArray.splice(i, 1);
             i--;
         }
     }
 }
 
 // to randomly generate powerups 
-var power_up_generator = setInterval(function(){
-    if(!game_over && !pause && powerUpArray.length<2 && Math.random() * (300 - level) < 1 ){ // keeping max powers up on screen at once =2;
+function generate_fruits() {
+    if (!game_over && !pause && powerUpArray.length < 2 && Math.random() * (300 - level) < 1) { // keeping max powers up on screen at once =2;
         powerUpArray.push(new PowerUp());
     }
-}, time_delay);
+}
+var power_up_generator = setInterval(generate_fruits, time_delay);
+
+
+
+// level up functions
+function level_up_benefits() {
+    leveling_up = true;
+    time_delay -= 5; // making the frequency with which the enemies shoot increase
+    if (HEALTH + health_damage <= 100) { // giving the player more health on leveling up
+        HEALTH += health_damage;
+        current_health_length += health_damage * HEALTH_BAR_LENGTH / MAX_HEALTH;
+    } else {
+        HEALTH = 100;
+        current_health_length = HEALTH_BAR_LENGTH;
+    }
+}
 function draw_level_up() {
     ctx.fillStyle = "black";
     ctx.font = big_lettering + "px Arial";
@@ -375,16 +409,8 @@ function enemies_dead() {
                 var prev_lvl = level;
                 level = Math.floor(score / 10) + 1;
                 if (prev_lvl < level) {
-                    leveling_up = true;
-                    time_delay -= 5; // making the frequency with which the enemies shoot increase
-                    if(HEALTH + health_damage <= 100){ // giving the player more health on leveling up
-                        HEALTH+=health_damage;
-                        current_health_length += health_damage * HEALTH_BAR_LENGTH / MAX_HEALTH;
-                    } else {
-                        HEALTH = 100;
-                        current_health_length = HEALTH_BAR_LENGTH;
-                    }
-                };
+                    level_up_benefits();
+                }
 
                 bulletsArray.splice(bulletsArray.indexOf(playerBullets[i]), 1);
                 playerBullets.splice(i, 1);
