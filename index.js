@@ -1,3 +1,5 @@
+// play again
+
 const canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -43,6 +45,8 @@ const COLLISION_DIST = 20,
     PLAYER_MOVE_DIST = 10;
 
 
+
+
 //scoring and health system
 function health_bar() {
     if (HEALTH < 25) {
@@ -65,6 +69,8 @@ function write_score() {
     ctx.strokeText("Score: " + score.toString(), 17.5
         * parseFloat(canvas.width) / 20, 25);
 }
+
+
 
 
 // pause system
@@ -108,11 +114,15 @@ ctx.beginPath();
 ctx.fillRect(parseFloat(pause_button.style.marginLeft), parseFloat(pause_button.style.marginTop), word.length, lettering_size);
 
 
+
+
 function top_screen() {
     draw_pause_button();
     write_score();
     health_bar();
 }
+
+
 
 
 // initializing the position of home
@@ -168,6 +178,8 @@ document.addEventListener("keydown", function (e) {
             player.style.marginTop = (y_cor + PLAYER_MOVE_DIST).toString() + "px";
     }
 });
+
+
 
 
 class Bullet {
@@ -228,6 +240,7 @@ function draw_bullets() {
         bulletsArray[i].draw();
     }
 }
+
 
 
 class Enemy {
@@ -293,6 +306,8 @@ function enemies_shoot() {
 var enemy_shooting = setInterval(enemies_shoot, time_delay);
 
 
+
+
 function hit_home_player() {
     // this loop checks if any bullet collided with the home (even the bullet shot by the player)
     for (let i = 0; i < bulletsArray.length; i++) {
@@ -327,6 +342,69 @@ function hit_home_player() {
         }
     }
 }
+
+function enemies_dead() {
+    // this part will check if any bullet hit them
+    for (let i = 0; i < playerBullets.length; i++) { // this will ensure that the bullets hit by the enemies don't hurt the enemies... i.e all bullets hurt the home but only players bullets hurt the enemies
+        var bullet_x = playerBullets[i].x,
+            bullet_y = playerBullets[i].y;
+        for (let j = 0; j < enemyArray.length; j++) {
+            var dx = bullet_x - enemyArray[j].x,
+                dy = bullet_y - enemyArray[j].y,
+                distance = Math.sqrt(dx ** 2 + dy ** 2);
+            if (distance < COLLISION_DIST) {
+                if (specialEnemyArray.includes(enemyArray[j])) specialEnemyArray.splice(specialEnemyArray.indexOf(enemyArray[i]), 1);
+                enemyArray.splice(j, 1);
+                score++;
+                var prev_lvl = level;
+                level = Math.floor(score / 10) + 1;
+                if (prev_lvl < level) {
+                    level_up_benefits();
+                }
+
+                bulletsArray.splice(bulletsArray.indexOf(playerBullets[i]), 1);
+                playerBullets.splice(i, 1);
+                i--;
+                break;
+            }
+        }
+    }
+
+    // this part will remove the enemies if they cross the window length
+    for (let i = 0; i < enemyArray.length; i++) {
+        if (enemyArray[i].y > window.innerHeight) {
+            if (specialEnemyArray.includes(enemyArray[i])) zspecialEnemyArray.splice(specialEnemyArray.indexOf(enemyArray[i]), 1);
+            enemyArray.splice(i, 1);
+            i--;
+        }
+    }
+}
+
+
+
+// level up functions
+function level_up_benefits() {
+    leveling_up = true;
+    time_delay -= 5; // making the frequency with which the enemies shoot increase
+    if (HEALTH + health_damage <= 100) { // giving the player more health on leveling up
+        HEALTH += health_damage;
+        current_health_length += health_damage * HEALTH_BAR_LENGTH / MAX_HEALTH;
+    } else {
+        HEALTH = 100;
+        current_health_length = HEALTH_BAR_LENGTH;
+    }
+}
+function draw_level_up() {
+    ctx.fillStyle = "black";
+    ctx.font = big_lettering + "px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("Level Up", parseFloat(window.innerWidth) / 2 - 15, parseFloat(window.innerHeight) / 2);
+    setTimeout(function () {
+        leveling_up = false;
+        game();
+    }, 1000);
+}
+
 
 class PowerUp {
     constructor() {
@@ -368,67 +446,6 @@ function generate_fruits() {
 }
 var power_up_generator = setInterval(generate_fruits, time_delay);
 
-
-
-// level up functions
-function level_up_benefits() {
-    leveling_up = true;
-    time_delay -= 5; // making the frequency with which the enemies shoot increase
-    if (HEALTH + health_damage <= 100) { // giving the player more health on leveling up
-        HEALTH += health_damage;
-        current_health_length += health_damage * HEALTH_BAR_LENGTH / MAX_HEALTH;
-    } else {
-        HEALTH = 100;
-        current_health_length = HEALTH_BAR_LENGTH;
-    }
-}
-function draw_level_up() {
-    ctx.fillStyle = "black";
-    ctx.font = big_lettering + "px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("Level Up", parseFloat(window.innerWidth) / 2 - 15, parseFloat(window.innerHeight) / 2);
-    setTimeout(function () {
-        leveling_up = false;
-        game();
-    }, 1000);
-}
-
-function enemies_dead() {
-    // this part will check if any bullet hit them
-    for (let i = 0; i < playerBullets.length; i++) { // this will ensure that the bullets hit by the enemies don't hurt the enemies... i.e all bullets hurt the home but only players bullets hurt the enemies
-        var bullet_x = playerBullets[i].x,
-            bullet_y = playerBullets[i].y;
-        for (let j = 0; j < enemyArray.length; j++) {
-            var dx = bullet_x - enemyArray[j].x,
-                dy = bullet_y - enemyArray[j].y,
-                distance = Math.sqrt(dx ** 2 + dy ** 2);
-            if (distance < COLLISION_DIST) {
-                if (specialEnemyArray.includes(enemyArray[j])) specialEnemyArray.splice(specialEnemyArray.indexOf(enemyArray[i]), 1);
-                enemyArray.splice(j, 1);
-                score++;
-                var prev_lvl = level;
-                level = Math.floor(score / 10) + 1;
-                if (prev_lvl < level) {
-                    level_up_benefits();
-                }
-
-                bulletsArray.splice(bulletsArray.indexOf(playerBullets[i]), 1);
-                playerBullets.splice(i, 1);
-                i--;
-                break;
-            }
-        }
-    }
-
-    // this part will remove the enemies if they cross the window length
-    for (let i = 0; i < enemyArray.length; i++) {
-        if (enemyArray[i].y > window.innerHeight) {
-            if (specialEnemyArray.includes(enemyArray[i])) zspecialEnemyArray.splice(specialEnemyArray.indexOf(enemyArray[i]), 1);
-            enemyArray.splice(i, 1);
-            i--;
-        }
-    }
-}
 
 // checking if the bullet collided with any enemies or enemies collided with home or player
 function collisions() {
