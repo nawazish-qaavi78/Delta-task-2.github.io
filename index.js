@@ -40,7 +40,8 @@ const ENEMY_SPEED = 1,
     ENEMY_SIZE = 25;
 
 const COLLISION_DIST = 20,
-    PLAYER_MOVE_DIST = 10;
+    BULLET_SHOOT_SPEED = 10,
+    PLAYER_MOVE_DIST = 5;
 
 
 
@@ -77,7 +78,7 @@ pause_button.style.marginLeft = (parseFloat(canvas.width) / 2).toString() + "px"
 pause_button.style.marginTop = "25px";
 var word = "pause";
 document.addEventListener("keypress", function (e) {
-    if (e.key === "p") {
+    if (e.key.toLocaleLowerCase() === "p") {
         if (pause === false) {
             clearInterval(enemy_shooting);
             clearInterval(power_up_generator);
@@ -159,23 +160,43 @@ function draw_player() {
 }
 
 // to make the player move
-document.addEventListener("keydown", function (e) {
+var input_keys = [];
+
+onkeydown = function (e) {
+    var key = e.key.toLowerCase();
+    if (!input_keys.includes(key) && (key === 'a' || key === 'w' || key === 's' || key === 'd')) {
+        input_keys.push(key);
+    }
+}
+
+onkeyup = function (e) {
+    var key = e.key.toLowerCase();
+    if (input_keys.includes(key)) {
+        input_keys.splice(input_keys.indexOf(key), 1);
+    }
+}
+
+function player_move() {
     var x_cor = parseFloat(player.style.marginLeft),
         y_cor = parseFloat(player.style.marginTop);
-    if (e.key === 'a') {
-        if (x_cor - PLAYER_MOVE_DIST > 0)
-            player.style.marginLeft = (x_cor - PLAYER_MOVE_DIST).toString() + "px";
-    } else if (e.key === 'd') {
-        if (x_cor + PLAYER_MOVE_DIST < window.innerWidth)
-            player.style.marginLeft = (x_cor + PLAYER_MOVE_DIST).toString() + "px";
-    } else if (e.key === "w") {
-        if (y_cor - PLAYER_MOVE_DIST > 0)
-            player.style.marginTop = (y_cor - PLAYER_MOVE_DIST).toString() + "px";
-    } else if (e.key === "s") {
-        if (y_cor + PLAYER_MOVE_DIST < window.innerHeight)
-            player.style.marginTop = (y_cor + PLAYER_MOVE_DIST).toString() + "px";
+    for (let i = 0; i < input_keys.length; i++) {
+        if (input_keys[i] === 'a') {
+            if (x_cor - PLAYER_MOVE_DIST > 0)
+                player.style.marginLeft = (x_cor - PLAYER_MOVE_DIST).toString() + "px";
+        } else if (input_keys[i] === 'd') {
+            if (x_cor + PLAYER_MOVE_DIST < window.innerWidth)
+                player.style.marginLeft = (x_cor + PLAYER_MOVE_DIST).toString() + "px";
+        }
+        if (input_keys[i] === "w") {
+            if (y_cor - PLAYER_MOVE_DIST > 0)
+                player.style.marginTop = (y_cor - PLAYER_MOVE_DIST).toString() + "px";
+        } else if (input_keys[i] === "s") {
+            if (y_cor + PLAYER_MOVE_DIST < window.innerHeight)
+                player.style.marginTop = (y_cor + PLAYER_MOVE_DIST).toString() + "px";
+        }
     }
-});
+}
+
 
 
 
@@ -199,8 +220,8 @@ class Bullet {
             this.y += this.direction * PLAYER_MOVE_DIST
         } else {
             var t = Math.sqrt(1 + (this.slope ** 2)); // this t is to ensure that speed of bullet is same in all directions
-            this.x += this.direction * PLAYER_MOVE_DIST / t;
-            this.y += this.direction * this.slope * PLAYER_MOVE_DIST / t;
+            this.x += this.direction * BULLET_SHOOT_SPEED / t;
+            this.y += this.direction * this.slope * BULLET_SHOOT_SPEED / t;
         }
     }
 }
@@ -410,14 +431,24 @@ class PowerUp {
         // this.y = Math.random() * canvas.height;
         this.x = 80;
         this.y = 80;
+        this.color = "green";
     }
     draw() {
-        ctx.fillStyle = "red";
+        ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, FRUIT_SIZE, 0, 2 * Math.PI);
         ctx.fill();
     }
 }
+
+
+// to randomly generate powerups 
+function generate_fruits() {
+    if (!game_over && !pause && powerUpArray.length < 2 && (Math.random() * (300 - 2*level) < 1)) { // keeping max powers up on screen at once =2;
+        powerUpArray.push(new PowerUp());
+    }
+}
+var power_up_generator = setInterval(generate_fruits, time_delay);
 
 function draw_powerUps() {
     for (let i = 0; i < powerUpArray.length; i++) {
@@ -429,20 +460,20 @@ function eaten_powerup() {
         var dx_player = powerUpArray[i].x - parseFloat(player.style.marginLeft),
             dy_player = powerUpArray[i].y - parseFloat(player.style.marginTop);
         if (Math.sqrt(dx_player ** 2 + dy_player ** 2) < COLLISION_DIST) {
-            time_delay -= 5;
+            time_delay -= 5; // reducing the speed of game
             powerUpArray.splice(i, 1);
+            if (HEALTH + health_damage <= 100) { // giving the player more health
+                HEALTH += health_damage;
+                current_health_length += health_damage * HEALTH_BAR_LENGTH / MAX_HEALTH;
+            } else {
+                HEALTH = 100;
+                current_health_length = HEALTH_BAR_LENGTH;
+            }
             i--;
         }
     }
 }
 
-// to randomly generate powerups 
-function generate_fruits() {
-    if (!game_over && !pause && powerUpArray.length < 2 && Math.random() * (300 - level) < 1) { // keeping max powers up on screen at once =2;
-        powerUpArray.push(new PowerUp());
-    }
-}
-var power_up_generator = setInterval(generate_fruits, time_delay);
 
 
 // checking if the bullet collided with any enemies or enemies collided with home or player
@@ -465,6 +496,7 @@ function draw_game() {
 }
 
 function move() {
+    player_move();
     manage_enemies();
     manage_bullets();
 }
