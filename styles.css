@@ -15,3 +15,34 @@
 #player {
     position: absolute;
 }
+#pause {
+    position: absolute;
+    z-index: 1;
+    background-color: violet;
+    border: none;
+    font-size: 15px;
+    color: white;
+    font-weight: bold;
+    left: 50%;
+    transform: translate(-50%,0);
+}
+#game-over-screen {
+    position: absolute;
+    z-index: 1;
+    text-align: center;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: none;
+}
+#play-again {
+    position: absolute;
+    z-index: 1;
+    background-color: violet;
+    border: none;
+    color: black;
+    left: 50%;
+    transform: translate(-50%,0);
+    font-size: 20px;
+    font-weight: bold;
+}
