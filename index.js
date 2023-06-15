@@ -351,7 +351,7 @@ function enemies_dead() {
                 dy = bullet_y - enemyArray[j].y,
                 distance = Math.sqrt(dx ** 2 + dy ** 2);
             if (distance < COLLISION_DIST) {
-                if (specialEnemyArray.includes(enemyArray[j])) specialEnemyArray.splice(specialEnemyArray.indexOf(enemyArray[i]), 1);
+                if (specialEnemyArray.includes(enemyArray[j])) specialEnemyArray.splice(specialEnemyArray.indexOf(enemyArray[j]), 1);
                 enemyArray.splice(j, 1);
                 score++;
                 var prev_lvl = level;
@@ -371,7 +371,7 @@ function enemies_dead() {
     // this part will remove the enemies if they cross the window length
     for (let i = 0; i < enemyArray.length; i++) {
         if (enemyArray[i].y > window.innerHeight) {
-            if (specialEnemyArray.includes(enemyArray[i])) zspecialEnemyArray.splice(specialEnemyArray.indexOf(enemyArray[i]), 1);
+            if (specialEnemyArray.includes(enemyArray[i])) specialEnemyArray.splice(specialEnemyArray.indexOf(enemyArray[i]), 1);
             enemyArray.splice(i, 1);
             i--;
         }
