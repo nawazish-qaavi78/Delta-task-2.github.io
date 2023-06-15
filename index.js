@@ -74,49 +74,30 @@ function write_score() {
 
 // pause system
 const pause_button = document.getElementById("pause");
-pause_button.style.marginLeft = (parseFloat(canvas.width) / 2).toString() + "px";
-pause_button.style.marginTop = "25px";
 var word = "pause";
+
+function pause_play_button(){
+    if (pause === false) {
+        clearInterval(enemy_shooting);
+        clearInterval(power_up_generator);
+        document.getElementById("pause").innerText = "Play";
+    } else {
+        enemy_shooting = setInterval(enemy_shooting, time_delay);
+        enemy_shooting = setInterval(power_up_generator, time_delay);
+        document.getElementById("pause").innerText = "Pause";
+    }
+    pause = !pause;
+}
+document.getElementById("pause").addEventListener("click", pause_play_button);
+
 document.addEventListener("keypress", function (e) {
     if (e.key.toLocaleLowerCase() === "p") {
-        if (pause === false) {
-            clearInterval(enemy_shooting);
-            clearInterval(power_up_generator);
-        } else {
-            enemy_shooting = setInterval(enemy_shooting, time_delay);
-            enemy_shooting = setInterval(power_up_generator, time_delay);
-        }
-        pause = !pause;
+        pause_play_button();   
     }
 });
-
-document.getElementById("canvas").addEventListener("click", function (e) {
-    var x_ok = e.x >= parseFloat(pause_button.style.marginLeft) && e.x <= parseFloat(pause_button.style.marginLeft) + word.length * lettering_size;
-    var y_ok = e.y >= parseFloat(pause_button.style.marginTop) && e.y <= parseFloat(pause_button.style.marginTop) + lettering_size;
-    if (x_ok && y_ok) {
-        pause = !pause;
-    }
-});
-
-function draw_pause_button() {
-    if (!pause) {
-        word = "pause";
-    } else {
-        word = "play";
-    }
-    ctx.strokeStyle = "white";
-    ctx.font = lettering_size + "px Arial";
-    ctx.strokeText(word, parseFloat(pause_button.style.marginLeft), parseFloat(pause_button.style.marginTop));
-}
-ctx.fillStyle = "yellow";
-ctx.beginPath();
-ctx.fillRect(parseFloat(pause_button.style.marginLeft), parseFloat(pause_button.style.marginTop), word.length, lettering_size);
-
-
 
 
 function top_screen() {
-    draw_pause_button();
     write_score();
     health_bar();
 }
@@ -502,14 +483,14 @@ function move() {
 }
 
 function game_over_screen() {
-    ctx.fillStyle = "black";
-    ctx.font = big_lettering + "px Arial";
-    ctx.textAlign = "left";
-    ctx.fillText("Game Over", parseFloat(window.innerWidth) / 2 - 15, parseFloat(window.innerHeight) / 2);
-    if (score > high_score)
-        localStorage.setItem("highscore", score);
-    ctx.fillText("High Score: " + high_score, parseFloat(window.innerWidth) / 2 - 15, parseFloat(window.innerHeight) / 2 + big_lettering);
+    document.getElementById("game-over-screen").style.display = "block";
+    if(high_score<score) high_score = score;
+    document.getElementById("high-score").innerText = "High Score: " + high_score;
+    document.getElementById("score").innerText = "Score: " + score;
 }
+document.getElementById("play-again").addEventListener("click", function(){
+    location.reload();
+});
 
 
 // the game loop
