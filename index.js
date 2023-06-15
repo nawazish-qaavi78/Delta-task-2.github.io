@@ -45,7 +45,6 @@ const COLLISION_DIST = 20,
 
 
 
-
 //scoring and health system
 function health_bar() {
     if (HEALTH < 25) {
@@ -72,11 +71,12 @@ function write_score() {
 
 
 
+
 // pause system
 const pause_button = document.getElementById("pause");
 var word = "pause";
 
-function pause_play_button(){
+function pause_play_button() {
     if (pause === false) {
         clearInterval(enemy_shooting);
         clearInterval(power_up_generator);
@@ -92,7 +92,7 @@ document.getElementById("pause").addEventListener("click", pause_play_button);
 
 document.addEventListener("keypress", function (e) {
     if (e.key.toLocaleLowerCase() === "p") {
-        pause_play_button();   
+        pause_play_button();
     }
 });
 
@@ -106,14 +106,20 @@ function top_screen() {
 
 
 // initializing the position of home
-const HOME = document.getElementById("home");
-
-HOME.style.marginTop = (window.innerHeight * 15 / 20).toString() + "px";
-HOME.style.marginLeft = (window.innerWidth / 2).toString() + "px";
-const HOME_X = parseFloat(HOME.style.marginLeft),
-    HOME_Y = parseFloat(HOME.style.marginTop),
+const HOME = document.getElementById("home"),
     HOME_WIDTH = 100,
     HOME_HEIGHT = 105;
+var HOME_X = parseFloat(HOME.style.marginLeft),
+    HOME_Y = parseFloat(HOME.style.marginTop);
+function set_home() {
+    HOME.style.marginTop = (window.innerHeight * 15 / 20).toString() + "px";
+    HOME.style.marginLeft = (window.innerWidth / 2).toString() + "px";
+    HOME_X = parseFloat(HOME.style.marginLeft);
+    HOME_Y = parseFloat(HOME.style.marginTop);
+    alert("hi");
+}
+set_home();
+
 
 function draw_home() {
     ctx.fillStyle = "yellow";
@@ -425,7 +431,7 @@ class PowerUp {
 
 // to randomly generate powerups 
 function generate_fruits() {
-    if (!game_over && !pause && powerUpArray.length < 2 && (Math.random() * (300 - 2*level) < 1)) { // keeping max powers up on screen at once =2;
+    if (!game_over && !pause && powerUpArray.length < 2 && (Math.random() * (300 - 2 * level) < 1)) { // keeping max powers up on screen at once =2;
         powerUpArray.push(new PowerUp());
     }
 }
@@ -484,11 +490,11 @@ function move() {
 
 function game_over_screen() {
     document.getElementById("game-over-screen").style.display = "block";
-    if(high_score<score) high_score = score;
+    if (high_score < score) high_score = score;
     document.getElementById("high-score").innerText = "High Score: " + high_score;
     document.getElementById("score").innerText = "Score: " + score;
 }
-document.getElementById("play-again").addEventListener("click", function(){
+document.getElementById("play-again").addEventListener("click", function () {
     location.reload();
 });
 
@@ -506,3 +512,9 @@ function game() {
     draw_game();
 }
 game();
+
+window.addEventListener("resize", function () {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    set_home();
+})
