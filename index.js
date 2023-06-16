@@ -468,7 +468,7 @@ function collisions() {
     enemies_dead();
     hit_home_player();
     eaten_powerup();
-    if (HEALTH === 0) {
+    if (HEALTH <= 0) {
         game_over = true;
     }
 }
